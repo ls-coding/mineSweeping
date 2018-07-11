@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>扫雷</title>
+    <style>
+        #scene {
+            width: 500px;
+            height: 500px;
+            margin: 100px auto;
+            /*border-top: 1px solid #000;*/
+            /*border-left: 1px solid #000;*/
+            border-radius: 8px;
+        }
+
+        .block {
+            width: 47px;
+            height: 47px;
+            background: rgb(92, 174, 255);
+            float: left;
+            /*border-right: 1px solid #000;*/
+            border: 1px solid #000;
+            border-radius: 8px;
+        }
+
+        .show {
+            background: red url(images/bomb.png) no-repeat center / 80%;
+        }
+
+        .num {
+            background: white;
+            text-align: center;
+            line-height: 49px;
+        }
+
+        .flag {
+            background: yellow url(images/flag.png) no-repeat center / 80%;
+        }
+
+        #mask {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #start {
+            width: 200px;
+            height: 50px;
+            border-radius: 25px;
+            text-align: center;
+            background: linear-gradient(to right, #4e9b86 , #5d5791);
+            box-shadow: 0 0 20px white;
+            line-height: 50px;
+            font-size: 25px;
+            color: white;
+            margin: 350px auto;
+            cursor: pointer;
+        }
+
+        #menu {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, #40c0ff, #9a40b8);
+            box-shadow: 0 0 15px #b3cde3;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            bottom: 0;
+            margin: auto;
+            display: none;
+        }
+
+        #menu div {
+            line-height: 130px;
+            text-align: center;
+            font-size: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #board {
+            width: 200px;
+            height: 100%;
+            background: linear-gradient(to bottom, #a272ff, #3fb7c0);
+            box-shadow: 0 0 20px black;
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 25px;
+            text-align: center;
+            line-height: 200px;
+            color: white;
+        }
+
+        #chose {
+            width: 200px;
+            height: 150px;
+        }
+
+        #time {
+            width: 200px;
+            height: 150px;
+        }
+
+        #flagNum {
+            width: 200px;
+            height: 150px;
+        }
+
+        #best {
+            font-size: 20px;
+            width: 200px;
+            height: 150px;
+        }
+
+        #end {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to left, #40c0ff, #9a40b8);
+            box-shadow: 0 0 15px #b3cde3;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            bottom: 0;
+            margin: auto;
+            display: none;
+        }
+
+        #end div {
+            line-height: 130px;
+            text-align: center;
+            font-size: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="mask">
+    <div id="start">开始</div>
+    <div id="menu">
+        <div class="easy">简单</div>
+        <div class="mid">中等</div>
+        <div class="hard">困难</div>
+    </div>
+    <div id="end">
+        <div class="result"></div>
+        <div class="reStart">重新开始</div>
+        <div class="reChoose">重新选择</div>
+    </div>
+</div>
+<div id="board">
+    <div id="chose"></div>
+    <div id="time">用时:0秒</div>
+    <div id="flagNum"></div>
+    <div id="best">最快完成:等你挑战!</div>
+</div>
+
+<script src="jQuery.js"></script>
+<script>
+    let count;
+    $("#start").click(function () {
+        $("#start").hide(500);
+        $("#menu").slideDown(1000);
+    });
+    $("#menu").on("click", "div", function () {
+        if ($(this).hasClass("easy")) {
+            count = 10;
+            $("#chose").html("简单");
+        } else if ($(this).hasClass("mid")) {
+            count = 15;
+            $("#chose").html("中等");
+        } else if ($(this).hasClass("hard")) {
+            count = 20;
+            $("#chose").html("困难");
+        }
+        $("#flagNum").html(count);
+        $("#mask").fadeOut(500);
+        createScene();
+    });
+
+    let t;
+
+    function setTime() {
+        let time = 0;
+        t = setInterval(function () {
+            time++;
+            $("#time").html("用时:" + time + "秒");
+        }, 1000)
+    }
+
+    $("#scene").one("click", setTime);
+
+    function createScene() {
+        if (localStorage.best) {
+            $("#best").html("最快完成" + localStorage.best);
+        }
+        do {
+            $("#scene").empty();
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    let isBomb;
+                    if (count === 10) {
+                        isBomb = Math.random() > 0.9;
+                    } else if (count === 15) {
+                        isBomb = Math.random() > 0.85;
+                    } else if (count === 20) {
+                        isBomb = Math.random() > 0.8;
+                    }
+
+                    $("<div>")
+                        .attr("id", i + "-" + j)
+                        .addClass(function () {
+                            return "block " + (isBomb ? "bomb" : "");
+                        })
+                        .appendTo("#scene");
+                }
+            }
+        } while ($(".bomb").length !== count);
+    }
+
+    $("#scene").on("click", ".block", clickHandler);
+
+
+    function clickHandler() {
+        if ($(this).hasClass("bomb")) {
+            $(".bomb").addClass("show");
+            alert("游戏结束!!!");
+            gameover(false);
+            return;
+        }
+        if ($(this).hasClass("num")) {
+            return;
+        }
+        if ($(this).hasClass("flag")) {
+            return;
+        }
+        $(this).addClass("num");
+        let n = 0;
+        let id = $(this).attr("id");
+        let x = parseInt(id.charAt(0));
+        let y = parseInt(id.charAt(2));
+        for (let i = x - 1; i <= x + 1; i++) {
+            for (let j = y - 1; j <= y + 1; j++) {
+                if ($("#" + i + "-" + j).hasClass("bomb")) {
+                    n++;
+                }
+            }
+        }
+        $(this).html(n);
+        if (n === 0) {
+            for (let i = x - 1; i <= x + 1; i++) {
+                for (let j = y - 1; j <= y + 1; j++) {
+                    let obj = $("#" + i + "-" + j);
+                    if (!obj.hasClass("num") && obj.length === 1) {
+                        clickHandler.call(obj[0]);
+                    }
+                }
+            }
+        }
+    }
+
+    $("#scene").on("contextmenu", ".block:not(.num)", function (e) {
+        e.preventDefault();
+        $(this).toggleClass("flag");
+        let flag = $(this).hasClass("flag");
+        $("#flagNum").html(function (index, ov) {
+            return flag ? ov - 1 : parseInt(ov) + 1;
+        });
+        if ($(".bomb").filter(".flag").length === count && $("#flagNum").html() === "0") {
+            alert("恭喜通关!!!");
+            gameover(true);
+        }
+    });
+
+    function gameover(res) {
+        let time = $("#time").html();
+        $("#mask").show();
+        $("#menu").hide();
+        $("#end").slideDown(500);
+        $(".result").html(function () {
+            return (res ? "游戏成功 " : "游戏失败 ") + time;
+        });
+        if (res) {
+            if (time < localStorage.best || localStorage.best === undefined) {
+                localStorage.best = time;
+            }
+        }
+    }
+
+    $(".reStart").click(function () {
+        $("#flagNum").html(count);
+        $("#mask").fadeOut(500);
+        createScene();
+        clearInterval(t);
+        $("#time").html("用时:" + 0 + "秒");
+        $("#scene").one("click", setTime);
+
+
+    });
+    $(".reChoose").click(function () {
+        $("#menu").show();
+        $("#end").hide();
+        clearInterval(t);
+        $("#time").html("用时:" + 0 + "秒");
+        $("#scene").one("click", setTime);
+
+    });
+
+</script>
+</body>
+</html>
